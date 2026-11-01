@@ -17,7 +17,7 @@ return {
     },
     plano = {
         titulo = "Plano de evacuacion",
-        paginas = { { texto = "Estructura general del juego.", imagen = "assets/placeholder.png", filtro = nearest } },
+        paginas = { { texto = "Estructura general del juego.", imagen = "assets/placeholder.png", filtro = "nearest" } },
     },
     inspiraciones = {
         titulo = "Inspiraciones",
@@ -50,7 +50,7 @@ return {
             { titulo = "Puzzles",
               texto = "Hay elementos escondidos en el recorrido. Se recogen en una escena y se unen con otro de una escena distinta. Para eso armo: un inventario." },
             { titulo = "Ej jugable para evitar un spoiler de prototipo final",
-              texto = "Una gema en una sala. Un elemento de nexo. Un palito en la 3era.\n\nGem + in + I = Géminis.\n\nLa unión da un objeto nuevo, con un nuevo significado." },
+              texto = "Una gema en una sala. Un elemento de nexo. Un palito en la 3era.\n\n Gem + in + I = GeminI.\n\n La unión da un objeto nuevo, con un nuevo significado." },
         },
     },
     paleta1 = {
