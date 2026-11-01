@@ -56,8 +56,10 @@ local lista = {
     sala("musica", "Lo sonoro", { ficha(14, 6, "musica") },
         { mapa = "mapa/musica.lua", siguiente = "despedida" }),
 
-    sala("despedida", "Despedida", { ficha(14, 6, "despedida") },
-        { mapa = "mapa/despedida.lua" }),   -- última: sin siguiente
+        sala("despedida", "Despedida", { ficha(14, 6, "despedida") },
+        { mapa = "mapa/despedida.lua",
+          final = { requiere = "Gem in i", contenido = "final",
+                    falta = "Epa... te faltó algo?" } }),
 }
 
 -- Salas cuyo mapa aún no existe: spawn y puerta provisorios

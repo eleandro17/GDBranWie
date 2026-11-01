@@ -46,6 +46,8 @@ function EstadoSala:ingresar(parametros)
     self.enPuerta = self:PuertaBajoJugador() ~= nil   -- apareció sobre una puerta
 
     musica.poner(self.sala.musica)
+
+    if parametros.aviso then self:Avisar(parametros.aviso, 4) end
 end
 
 local function agregarPared(self, x, y, w, h)
@@ -156,7 +158,17 @@ function EstadoSala:ChequearPuertas()
     local p = self:PuertaBajoJugador()
     if not p then self.enPuerta = false return end
     if self.enPuerta then return end   -- empezó sobre una puerta: no cuenta hasta que salga de ella
-
+    
+    local final = self.sala.final
+    if final then
+        self.enPuerta = true   -- no se repite hasta que salga de la puerta
+        if inventario.tiene(final.requiere) then
+            self.panel:Abrir(final.contenido)
+        else
+            MaqEstadoGlobal:cambiar("sala", { id = SALAS[1].id, aviso = final.falta })
+        end
+        return
+    end
     local destino = self.sala.siguiente or p.destino
     print(self.sala.id .. " -> " .. tostring(destino))
 

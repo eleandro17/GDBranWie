@@ -1,6 +1,6 @@
 require "dependencias"
 
--- Lienzo de 240x136, escalado x3 (ventana de 720x408)
+
 ventana = { ancho = 240, alto = 136, escala = 3 }
 
 MaqEstadoGlobal = MaqEstados{

@@ -1,6 +1,6 @@
 EstadoMenu = Class{__includes = Estado}
 
-local TITULO = "Bran Wie GDD"   
+--  local TITULO = "Bran Wie GDD"   
 local VISIBLES = 6
 
 function EstadoMenu:ingresar()
@@ -15,9 +15,9 @@ function EstadoMenu:dibujar()
     local fondo = cargarImagen("assets/menu.png", "nearest")
     if fondo then love.graphics.draw(fondo, 0, 0) end
 
-    love.graphics.setFont(fuentes.get(16))
-    love.graphics.setColor(0.2, 0.2, 0.2)
-    love.graphics.printf(TITULO, 0, 6, ventana.ancho, "center")
+    --love.graphics.setFont(fuentes.get(16))
+    --love.graphics.setColor(0.2, 0.2, 0.2)
+    --love.graphics.printf(TITULO, 0, 6, ventana.ancho, "center")
 
     love.graphics.setFont(fuentes.get(8))
     local inicio = math.max(1, math.min(self.sel - 2, #SALAS - VISIBLES + 1))
@@ -26,9 +26,9 @@ function EstadoMenu:dibujar()
         if i == self.sel then love.graphics.setColor(0.1, 0.8, 0.3) else love.graphics.setColor(0.2, 0.1, 1) end
         love.graphics.print((i == self.sel and "> " or "  ") .. i .. ". " .. SALAS[i].titulo, 24, y)
     end
-    love.graphics.setColor(0.2, 0.1, 0.1)
-    love.graphics.printf("ARR/ABA elegir  ENTER entrar", 0, 124, ventana.ancho, "center")
-    love.graphics.setColor(1, 1, 1)
+    -- love.graphics.setColor(0.2, 0.1, 0.1)
+    -- love.graphics.printf("ARR/ABA elegir  ENTER entrar", 0, 124, ventana.ancho, "center")
+     love.graphics.setColor(1, 1, 1)
 
     love.graphics.setCanvas()
     love.graphics.draw(lienzo, 0, 0, 0, ventana.escala, ventana.escala)
