@@ -10,6 +10,11 @@ local function ficha(tx, ty, contenido) return { tipo = "ficha", x = centro(tx),
 local function spawn(tx, ty, desde)     return { tipo = "spawn", x = centro(tx), y = centro(ty), desde = desde } end
 local function puerta(tx, ty, destino)  return { tipo = "puerta", x = tx * T, y = ty * T, w = T, h = T, destino = destino } end
 
+-- objeto recogible del puzzle: item = nombre; sprite opcional (por defecto assets/item_<item>.png)
+local function objeto(tx, ty, item, sprite)
+    return { tipo = "objeto", x = centro(tx), y = centro(ty), item = item, sprite = sprite }
+end
+
 -- opciones: mapa, siguiente, musica, tilesAncho, tilesAlto, paredes = { {x,y,w,h}, ... }
 local function sala(id, titulo, entidades, opciones)
     local s = opciones or {}
@@ -34,7 +39,7 @@ local lista = {
         { mapa = "mapa/mecanicas1.lua", siguiente = "mecanicas2" }),
 
     sala("mecanicas2", "Mecanicas 2", { ficha(14, 6, "mecanicas2") },
-        { mapa = "mapa/mecanicas2.lua", siguiente = "mecanicas3" }),   -- antes decía "paleta1"
+        { mapa = "mapa/mecanicas2.lua", siguiente = "mecanicas3" }),
 
     sala("mecanicas3", "Mecanicas 3 - Reglas", { ficha(14, 6, "mecanicas3") },
         { mapa = "mapa/mecanicas3.lua", siguiente = "mecanicas4" }),
@@ -63,6 +68,7 @@ for _, s in ipairs(lista) do
     end
 end
 
+-- Una pista para todas las salas (si una sala define la suya, esa gana)
 for _, s in ipairs(lista) do
     s.musica = s.musica or "assets/musicafondo.ogg"
 end

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="30" height="17" tilewidth="8" tileheight="8" infinite="0" nextlayerid="7" nextobjectid="75">
+<map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="30" height="17" tilewidth="8" tileheight="8" infinite="0" nextlayerid="8" nextobjectid="76">
  <editorsettings>
   <export format="lua"/>
  </editorsettings>
@@ -46,5 +46,8 @@
     <property name="desde" value="presentacion1"/>
    </properties>
   </object>
+ </objectgroup>
+ <objectgroup id="7" name="objeto">
+  <object id="75" name="gem" x="111.662" y="39.323" width="8.16137" height="8.53234"/>
  </objectgroup>
 </map>

@@ -9,8 +9,8 @@ return {
   height = 17,
   tilewidth = 8,
   tileheight = 8,
-  nextlayerid = 7,
-  nextobjectid = 73,
+  nextlayerid = 8,
+  nextobjectid = 74,
   properties = {},
   tilesets = {
     {
@@ -79,6 +79,36 @@ return {
         87, 88, 83, 74, 74, 74, 74, 74, 74, 74, 74, 74, 74, 74, 74, 74, 74, 74, 83, 83, 83, 83, 83, 83, 141, 142, 131, 132, 62, 83,
         75, 76, 83, 74, 74, 74, 74, 74, 74, 74, 74, 74, 74, 74, 74, 74, 74, 74, 83, 83, 83, 83, 83, 83, 131, 132, 131, 132, 131, 62,
         142, 130, 130, 142, 142, 130, 142, 142, 142, 132, 142, 142, 132, 132, 142, 142, 142, 142, 132, 142, 142, 142, 132, 142, 142, 132, 142, 132, 142, 142
+      }
+    },
+    {
+      type = "objectgroup",
+      draworder = "topdown",
+      id = 7,
+      name = "objeto",
+      class = "",
+      visible = true,
+      opacity = 1,
+      offsetx = 0,
+      offsety = 0,
+      parallaxx = 1,
+      parallaxy = 1,
+      properties = {},
+      objects = {
+        {
+          id = 73,
+          name = "in",
+          type = "",
+          shape = "rectangle",
+          x = 63.6781,
+          y = 55.7704,
+          width = 8.74014,
+          height = 8.74014,
+          rotation = 0,
+          opacity = 1,
+          visible = true,
+          properties = {}
+        }
       }
     },
     {
@@ -170,10 +200,10 @@ return {
           name = "",
           type = "",
           shape = "rectangle",
-          x = 40,
-          y = 68.6667,
-          width = 115.667,
-          height = 29.3333,
+          x = 46.243,
+          y = 70.3315,
+          width = 102.765,
+          height = 26.4199,
           rotation = 0,
           opacity = 1,
           visible = true,

@@ -17,7 +17,7 @@ function EstadoSala:ingresar(parametros)
     self.mundo = BUMP.newWorld(8)
     self.panel = FichaLarga()
     self.camara = CAM()
-    self.fichas, self.puertas, self.spawns, self.rectParedes = {}, {}, {}, {}
+    self.fichas, self.puertas, self.spawns, self.rectParedes, self.objetos = {}, {}, {}, {}, {}
     self.cerca, self.aviso, self.tiempoAviso = nil, "", 0
 
     local entidades = self:CargarMapa()
@@ -28,6 +28,11 @@ function EstadoSala:ingresar(parametros)
             table.insert(self.puertas, { x = e.x, y = e.y, w = e.w or 8, h = e.h or 8, destino = e.destino })
         elseif e.tipo == "spawn" then
             table.insert(self.spawns, e)
+        elseif e.tipo == "objeto" and e.item then
+            local clave = self.sala.id .. ":" .. e.item
+            if not inventario.recogidos[clave] then
+                table.insert(self.objetos, Objeto(e.x, e.y, e.item, e.sprite, clave))
+            end
         end
     end
 
@@ -49,12 +54,11 @@ local function agregarPared(self, x, y, w, h)
     table.insert(self.rectParedes, { x, y, w, h })
 end
 
--- Devuelve la lista normalizada de entidades {tipo, x, y, w, h, contenido, destino, desde, sprite}
+-- Devuelve la lista normalizada de entidades {tipo, x, y, w, h, contenido, destino, desde, sprite, item}
 function EstadoSala:CargarMapa()
     local s = self.sala
 
-    
-        if s.mapa then
+    if s.mapa and existe(s.mapa) then
         self.mapa = STI(s.mapa)
         self.anchoPx = self.mapa.width * self.mapa.tilewidth
         self.altoPx = self.mapa.height * self.mapa.tileheight
@@ -72,7 +76,7 @@ function EstadoSala:CargarMapa()
                         if not tipo or tipo == "" then tipo = capa.name end  -- la capa dice qué es
 
                         local x, y = o.x, o.y   -- la puerta usa su esquina
-                        if tipo ~= "puerta" then  -- spawn y ficha: centro del tile
+                        if tipo ~= "puerta" then  -- spawn, ficha y objeto: centro del tile
                             local cx = o.x + (o.width or 0) / 2
                             local cy = o.y + (o.height or 0) / 2
                             x, y = math.floor(cx / 8) * 8 + 4, math.floor(cy / 8) * 8 + 4
@@ -82,13 +86,13 @@ function EstadoSala:CargarMapa()
                             w = (o.width and o.width > 0) and o.width or 8,
                             h = (o.height and o.height > 0) and o.height or 8,
                             contenido = p.contenido, destino = p.destino,
-                            desde = p.desde, sprite = p.sprite })
+                            desde = p.desde, sprite = p.sprite, item = p.item or ((o.name ~= "") and o.name or nil) })
                     end
                 end
             end
         end
 
-        -- lo que definiste en salas.lua (la ficha) se suma a lo de Tiled
+        -- lo que definiste en salas.lua (fichas y objetos) se suma a lo de Tiled
         for _, e in ipairs(s.entidades or {}) do table.insert(lista, e) end
         return lista
     end
@@ -105,9 +109,14 @@ function EstadoSala:CargarMapa()
     return s.entidades or {}
 end
 
+-- ================= AVISOS =================
+function EstadoSala:Avisar(texto, segundos)
+    self.aviso, self.tiempoAviso = texto, segundos or 2
+end
+
 -- ================= ACTUALIZACION =================
 function EstadoSala:actualizar(dt)
-    self.tiempoEntrada = math.max(0, self.tiempoEntrada - dt)---
+    self.tiempoEntrada = math.max(0, self.tiempoEntrada - dt)
     self.tiempoAviso = math.max(0, self.tiempoAviso - dt)
     self.jugador.puedeMoverse = not self.panel.abierta
 
@@ -115,6 +124,19 @@ function EstadoSala:actualizar(dt)
     for _, f in ipairs(self.fichas) do
         f:Actualizar(dt)
         if f:Cerca(self.jugador) then self.cerca = f end
+    end
+
+    -- objetos del puzzle: al pisarlos pasan al inventario
+    for i = #self.objetos, 1, -1 do
+        local o = self.objetos[i]
+        o:Actualizar(dt)
+        if o:Tocado(self.jugador) then
+            table.remove(self.objetos, i)
+            inventario.agregar(o.item, o.clave)
+            local receta = inventario.combinar()
+            if receta then self:Avisar(receta.mensaje, 5)
+            else self:Avisar("Encontraste: " .. o.item, 2.5) end
+        end
     end
 
     self.camara:lookAt(self.jugador.posX, self.jugador.posY)
@@ -139,33 +161,13 @@ function EstadoSala:ChequearPuertas()
     print(self.sala.id .. " -> " .. tostring(destino))
 
     if destino == self.sala.id then
-        self.aviso, self.tiempoAviso = "(la puerta apunta a esta sala)", 3
+        self:Avisar("(la puerta apunta a esta sala)", 3)
     elseif indiceSala(destino) then
         MaqEstadoGlobal:cambiar("sala", { id = destino, desde = self.sala.id })
     else
-        self.aviso, self.tiempoAviso = "(sala en construccion)", 2
+        self:Avisar("(sala en construccion)", 2)
     end
 end
-
--- function EstadoSala:ChequearPuertas()
---     local j = self.jugador
---     for _, p in ipairs(self.puertas) do
---         if j.posX >= p.x and j.posX <= p.x + p.w and j.posY >= p.y and j.posY <= p.y + p.h then
---             -- manda lo que dice salas.lua; la propiedad del mapa solo sirve si no hay `siguiente`
---             local destino = self.sala.siguiente or p.destino
---             print(self.sala.id .. " -> " .. tostring(destino))
-
---             if destino == self.sala.id then
---                 self.aviso, self.tiempoAviso = "(la puerta apunta a esta sala)", 3
---             elseif indiceSala(destino) then
---                 MaqEstadoGlobal:cambiar("sala", { id = destino, desde = self.sala.id })
---             else
---                 self.aviso, self.tiempoAviso = "(sala en construccion)", 2
---             end
---             return
---         end
---     end
--- end
 
 -- ================= RENDERIZADO =================
 function EstadoSala:DibujarFondo()
@@ -188,11 +190,8 @@ function EstadoSala:dibujar()
     else
         self:DibujarFondo()
     end
-    -- for _, p in ipairs(self.puertas) do
-    --     love.graphics.setColor(0.3, 0.8, 0.5, 0.7)
-    --     love.graphics.rectangle("fill", p.x, p.y, p.w, p.h)
-    -- end
     love.graphics.setColor(1, 1, 1)
+    for _, o in ipairs(self.objetos) do o:Dibujar() end
     for _, f in ipairs(self.fichas) do f:Dibujar(f == self.cerca) end
     self.jugador:Dibujar()
     self.camara:detach()
@@ -203,8 +202,24 @@ function EstadoSala:dibujar()
     love.graphics.rectangle("fill", 0, 0, ventana.ancho, 12)
     love.graphics.setColor(1, 1, 1)
     love.graphics.print(string.format("%d/%d  %s", self.idx, #SALAS, self.sala.titulo), 4, 2)
+
+    -- HUD: objetos que llevo
+    if #inventario.items > 0 then
+        love.graphics.setColor(0, 0, 0, 0.6)
+        love.graphics.rectangle("fill", 0, ventana.alto - 12, ventana.ancho, 12)
+        love.graphics.setColor(1, 0.8, 0.3)
+        love.graphics.print("Objetos: " .. table.concat(inventario.items, "  "), 4, ventana.alto - 10)
+        love.graphics.setColor(1, 1, 1)
+    end
+
+    -- HUD: aviso
     if self.tiempoAviso > 0 then
-        love.graphics.printf(self.aviso, 0, ventana.alto - 12, ventana.ancho, "center")
+        local y = ventana.alto - 36
+        love.graphics.setColor(0, 0, 0, 0.8)
+        love.graphics.rectangle("fill", 4, y, ventana.ancho - 8, 22)
+        love.graphics.setColor(1, 1, 1)
+        love.graphics.rectangle("line", 4, y, ventana.ancho - 8, 22)
+        love.graphics.printf(self.aviso, 8, y + 3, ventana.ancho - 16, "center")
     end
 
     love.graphics.setCanvas()
@@ -229,7 +244,7 @@ function EstadoSala:inputsJuego(key, repetida)
         return
     end
 
-    if repetida and self.tiempoEntrada > 0 then return end ----
+    if repetida and self.tiempoEntrada > 0 then return end
     local dx, dy = 0, 0
     if key == "left" then dx = -1
     elseif key == "right" then dx = 1

@@ -193,9 +193,7 @@ return {
           rotation = 0,
           opacity = 1,
           visible = true,
-          properties = {
-            ["destino"] = "plano"
-          }
+          properties = {}
         }
       }
     },
@@ -225,9 +223,7 @@ return {
           rotation = 0,
           opacity = 1,
           visible = true,
-          properties = {
-            ["desde"] = "presentacion1"
-          }
+          properties = {}
         }
       }
     }

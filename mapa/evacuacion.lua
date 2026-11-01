@@ -9,8 +9,8 @@ return {
   height = 17,
   tilewidth = 8,
   tileheight = 8,
-  nextlayerid = 7,
-  nextobjectid = 75,
+  nextlayerid = 8,
+  nextobjectid = 76,
   properties = {},
   tilesets = {
     {
@@ -214,6 +214,36 @@ return {
           properties = {
             ["desde"] = "presentacion1"
           }
+        }
+      }
+    },
+    {
+      type = "objectgroup",
+      draworder = "topdown",
+      id = 7,
+      name = "objeto",
+      class = "",
+      visible = true,
+      opacity = 1,
+      offsetx = 0,
+      offsety = 0,
+      parallaxx = 1,
+      parallaxy = 1,
+      properties = {},
+      objects = {
+        {
+          id = 75,
+          name = "gem",
+          type = "",
+          shape = "rectangle",
+          x = 111.662,
+          y = 39.323,
+          width = 8.16137,
+          height = 8.53234,
+          rotation = 0,
+          opacity = 1,
+          visible = true,
+          properties = {}
         }
       }
     }
