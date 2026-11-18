@@ -17,8 +17,10 @@ function EstadoSala:ingresar(parametros)
     self.mundo = BUMP.newWorld(8)
     self.panel = FichaLarga()
     self.camara = CAM()
-    self.fichas, self.puertas, self.spawns, self.rectParedes, self.objetos = {}, {}, {}, {}, {}
+    self.fichas, self.puertas, self.spawns, self.rectParedes, self.objetos, self.disparadores = {}, {}, {}, {}, {}, {}
+    self.dialogo = nil
     self.cerca, self.aviso, self.tiempoAviso = nil, "", 0
+    
 
     local entidades = self:CargarMapa()
     for _, e in ipairs(entidades) do
@@ -33,6 +35,9 @@ function EstadoSala:ingresar(parametros)
             if not inventario.recogidos[clave] then
                 table.insert(self.objetos, Objeto(e.x, e.y, e.item, e.sprite, clave))
             end
+                elseif e.tipo == "disparador" then
+            table.insert(self.disparadores, { x = e.x, y = e.y, w = e.w or 8, h = e.h or 8,
+                                              texto = e.texto, usado = false })
         end
     end
 
@@ -46,6 +51,8 @@ function EstadoSala:ingresar(parametros)
     self.enPuerta = self:PuertaBajoJugador() ~= nil   -- apareció sobre una puerta
 
     musica.poner(self.sala.musica)
+    -- la animacao de branwie 3D
+    self.anim = self.sala.animacion and Animacion(self.sala.animacion) or nil
 
     if parametros.aviso then self:Avisar(parametros.aviso, 4) end
 end
@@ -118,9 +125,23 @@ end
 
 -- ================= ACTUALIZACION =================
 function EstadoSala:actualizar(dt)
+
+    if self.anim then self.anim:Actualizar(dt) end
+
     self.tiempoEntrada = math.max(0, self.tiempoEntrada - dt)
     self.tiempoAviso = math.max(0, self.tiempoAviso - dt)
-    self.jugador.puedeMoverse = not self.panel.abierta
+        -- disparadores: al pisarlos se abre el diálogo (una vez por visita a la sala)
+    if not self.dialogo then
+        local j = self.jugador
+        for _, d in ipairs(self.disparadores) do
+            if not d.usado and j.posX >= d.x and j.posX <= d.x + d.w
+               and j.posY >= d.y and j.posY <= d.y + d.h then
+                d.usado = true
+                self:AbrirDialogo(d.texto)
+            end
+        end
+    end
+    self.jugador.puedeMoverse = not (self.panel.abierta or self.dialogo)
 
     self.cerca = nil
     for _, f in ipairs(self.fichas) do
@@ -191,6 +212,7 @@ function EstadoSala:DibujarFondo()
 end
 
 function EstadoSala:dibujar()
+
     love.graphics.setCanvas(lienzo)
     love.graphics.clear(0.1, 0.09, 0.14)
 
@@ -202,6 +224,8 @@ function EstadoSala:dibujar()
     else
         self:DibujarFondo()
     end
+
+        if self.anim then self.anim:Dibujar(self.anchoPx, self.altoPx) end
     love.graphics.setColor(1, 1, 1)
     for _, o in ipairs(self.objetos) do o:Dibujar() end
     for _, f in ipairs(self.fichas) do f:Dibujar(f == self.cerca) end
@@ -234,6 +258,15 @@ function EstadoSala:dibujar()
         love.graphics.printf(self.aviso, 8, y + 3, ventana.ancho - 16, "center")
     end
 
+            if self.dialogo then
+        local y = ventana.alto - 44
+        love.graphics.setColor(0, 0, 0, 0.9)
+        love.graphics.rectangle("fill", 4, y, ventana.ancho - 8, 40)
+        love.graphics.setColor(1, 1, 1)
+        love.graphics.rectangle("line", 4, y, ventana.ancho - 8, 40)
+        love.graphics.printf(self.dialogo.lineas[self.dialogo.i], 10, y + 5, ventana.ancho - 20, "left")
+    end
+
     love.graphics.setCanvas()
     love.graphics.draw(lienzo, 0, 0, 0, ventana.escala, ventana.escala)
     self.panel:Dibujar(ventana)
@@ -241,6 +274,16 @@ end
 
 -- ================= INPUT =================
 function EstadoSala:inputsJuego(key, repetida)
+
+    if self.dialogo then
+        if key == "escape" then
+            self.dialogo = nil
+        elseif not repetida and (key == "space" or key == "return") then
+            self.dialogo.i = self.dialogo.i + 1
+            if self.dialogo.i > #self.dialogo.lineas then self.dialogo = nil end
+        end
+        return
+    end
     if self.panel.abierta then
         if not repetida then self.panel:Input(key) end
         return
@@ -267,4 +310,8 @@ function EstadoSala:inputsJuego(key, repetida)
         self.jugador:Mover(dx, dy)
         self:ChequearPuertas()
     end
+end
+
+function EstadoSala:AbrirDialogo(texto)
+    self.dialogo = { lineas = (type(texto) == "table") and texto or { texto }, i = 1 }
 end

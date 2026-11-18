@@ -19,6 +19,7 @@ require "estados.estado"
 require "estados.maqEstados"
 require "estados.estadoMenu"
 require "estados.estadoSala"
+require "animacion"
 
 SALAS     = require "datos.salas"
 CONTENIDO = require "datos.contenido"

@@ -10,6 +10,11 @@ local function ficha(tx, ty, contenido) return { tipo = "ficha", x = centro(tx),
 local function spawn(tx, ty, desde)     return { tipo = "spawn", x = centro(tx), y = centro(ty), desde = desde } end
 local function puerta(tx, ty, destino)  return { tipo = "puerta", x = tx * T, y = ty * T, w = T, h = T, destino = destino } end
 
+-- zona invisible: al pisarla se abre un diálogo (texto puede ser un string o una lista de strings)
+local function disparador(tx, ty, tw, th, texto)
+    return { tipo = "disparador", x = tx * T, y = ty * T, w = tw * T, h = th * T, texto = texto }
+end
+
 -- objeto recogible del puzzle: item = nombre; sprite opcional (por defecto assets/item_<item>.png)
 local function objeto(tx, ty, item, sprite)
     return { tipo = "objeto", x = centro(tx), y = centro(ty), item = item, sprite = sprite }
@@ -56,10 +61,14 @@ local lista = {
     sala("musica", "Lo sonoro", { ficha(14, 6, "musica") },
         { mapa = "mapa/musica.lua", siguiente = "despedida" }),
 
-        sala("despedida", "Despedida", { ficha(14, 6, "despedida") },
-        { mapa = "mapa/despedida.lua",
+    sala("despedida", "Despedida", { ficha(14, 6, "despedida") },
+        { mapa = "mapa/despedida.lua",siguiente = "en el medio", 
           final = { requiere = "Gem in i", contenido = "final",
                     falta = "Epa... te faltó algo?" } }),
+    sala("en el medio", "Bran WIEee!!", { disparador(14, 8, 2, 1, "yo soy yo, yo soy vos, somos todos y uno, y aún así debemos continuar") },
+        { mapa = "mapa/medio.lua", siguiente = "...",
+          musica = "assets/fm1_coral.ogg",
+          animacion = { patron = "assets/anim1/frame%02d.png", frames = 13, fps = 8 } }),
 }
 
 -- Salas cuyo mapa aún no existe: spawn y puerta provisorios
