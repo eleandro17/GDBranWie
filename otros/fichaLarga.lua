@@ -89,9 +89,9 @@ function FichaLarga:Dibujar(ventana)
         love.graphics.setColor(1, 1, 1)
         love.graphics.printf(p.texto, x, y, anchoTexto, "left")
     end
-    love.graphics.setFont(fuentes.get(TAM_TEXTO))
-    love.graphics.setColor(1, 1, 1)
-    love.graphics.printf(p.texto or "", x, y, anchoTexto, "left")
+    -- love.graphics.setFont(fuentes.get(TAM_TEXTO))
+    -- love.graphics.setColor(1, 1, 1)
+    -- love.graphics.printf(p.texto or "", x, y, anchoTexto, "left")
 
     -- pie
     love.graphics.setFont(fuentes.get(TAM_PIE))

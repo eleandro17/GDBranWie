@@ -311,7 +311,7 @@ function EstadoSala:dibujar()
     
     -- HUD: aviso
     if self.tiempoAviso > 0 then
-        local y = ventana.alto - 36
+        local y = ventana.alto - 24
         love.graphics.setColor(0, 0, 0, 0.8)
         love.graphics.rectangle("fill", 4, y, ventana.ancho - 8, 22)
         love.graphics.setColor(1, 1, 1)
