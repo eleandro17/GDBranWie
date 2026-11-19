@@ -11,6 +11,8 @@ require "fuentes"
 require "musica"
 require "jugador"
 require "otros.ficha"
+require "otros.personaje"                                 -- junto a otros.ficha
+
 
 require "otros.objeto"      --
 require "otros.fichaLarga"
@@ -24,3 +26,4 @@ require "animacion"
 SALAS     = require "datos.salas"
 CONTENIDO = require "datos.contenido"
 COMBINACIONES = require "datos.combinaciones"
+TRANSFORMACIONES = require "datos.transformaciones"       -- junto a SALAS y CONTENIDO

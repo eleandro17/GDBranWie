@@ -17,10 +17,10 @@ function EstadoSala:ingresar(parametros)
     self.mundo = BUMP.newWorld(8)
     self.panel = FichaLarga()
     self.camara = CAM()
-    self.fichas, self.puertas, self.spawns, self.rectParedes, self.objetos, self.disparadores = {}, {}, {}, {}, {}, {}
+    self.fichas, self.puertas, self.spawns, self.rectParedes = {}, {}, {}, {}
+    self.objetos, self.disparadores, self.personajes = {}, {}, {}
     self.dialogo = nil
-    self.cerca, self.aviso, self.tiempoAviso = nil, "", 0
-    
+    self.cerca, self.cercaNpc, self.aviso, self.tiempoAviso = nil, nil, "", 0
 
     local entidades = self:CargarMapa()
     for _, e in ipairs(entidades) do
@@ -35,9 +35,12 @@ function EstadoSala:ingresar(parametros)
             if not inventario.recogidos[clave] then
                 table.insert(self.objetos, Objeto(e.x, e.y, e.item, e.sprite, clave))
             end
-                elseif e.tipo == "disparador" then
+        elseif e.tipo == "disparador" then
             table.insert(self.disparadores, { x = e.x, y = e.y, w = e.w or 8, h = e.h or 8,
                                               texto = e.texto, usado = false })
+        elseif e.tipo == "npc" then
+            e.clave = self.sala.id .. ":" .. (e.nombre or "npc")
+            table.insert(self.personajes, Personaje(e.x, e.y, e))
         end
     end
 
@@ -91,17 +94,28 @@ function EstadoSala:CargarMapa()
                             x, y = math.floor(cx / 8) * 8 + 4, math.floor(cy / 8) * 8 + 4
                         end
 
+                        local nombre = (o.name ~= "") and o.name or nil
+                        local contenido = p.contenido
+                        if tipo == "objeto" and nombre then
+                            for clave in pairs(CONTENIDO) do
+                                if clave:lower() == nombre:lower() then
+                                    tipo, contenido = "ficha", clave   -- ignora mayúsculas
+                                    break
+                                end
+                            end
+                        end
+
                         table.insert(lista, { tipo = tipo, x = x, y = y,
                             w = (o.width and o.width > 0) and o.width or 8,
                             h = (o.height and o.height > 0) and o.height or 8,
-                            contenido = p.contenido, destino = p.destino,
-                            desde = p.desde, sprite = p.sprite, item = p.item or ((o.name ~= "") and o.name or nil) })
+                            contenido = contenido, destino = p.destino,
+                            desde = p.desde, sprite = p.sprite, item = p.item or nombre })
                     end
                 end
             end
         end
 
-        -- lo que definiste en salas.lua (fichas y objetos) se suma a lo de Tiled
+        -- lo que definiste en salas.lua (fichas, objetos, npcs...) se suma a lo de Tiled
         for _, e in ipairs(s.entidades or {}) do table.insert(lista, e) end
         return lista
     end
@@ -118,9 +132,29 @@ function EstadoSala:CargarMapa()
     return s.entidades or {}
 end
 
--- ================= AVISOS =================
+-- ================= AVISOS Y DIALOGOS =================
 function EstadoSala:Avisar(texto, segundos)
     self.aviso, self.tiempoAviso = texto, segundos or 2
+end
+
+-- texto: una frase o una lista de frases. alTerminar: función opcional que se ejecuta al cerrar el diálogo.
+function EstadoSala:AbrirDialogo(texto, alTerminar)
+    self.dialogo = { lineas = (type(texto) == "table") and texto or { texto }, i = 1, alTerminar = alTerminar }
+end
+
+-- Hablar con un NPC; si tiene un objeto para entregar, lo da al terminar (una sola vez)
+function EstadoSala:Hablar(p)
+    if p.entrega and inventario.recogidos[p.clave] then
+        self:AbrirDialogo(p.despues or p.lineas)
+        return
+    end
+    self:AbrirDialogo(p.lineas, function()
+        if p.entrega then
+            inventario.agregar(p.entrega, p.clave)
+            local receta = inventario.combinar()
+            self:Avisar(receta and receta.mensaje or (p.nombre .. " te dio: " .. inventario.nombre(p.entrega)), 4)
+        end
+    end)
 end
 
 -- ================= ACTUALIZACION =================
@@ -130,7 +164,8 @@ function EstadoSala:actualizar(dt)
 
     self.tiempoEntrada = math.max(0, self.tiempoEntrada - dt)
     self.tiempoAviso = math.max(0, self.tiempoAviso - dt)
-        -- disparadores: al pisarlos se abre el diálogo (una vez por visita a la sala)
+
+    -- disparadores: al pisarlos se abre el diálogo (una vez por visita a la sala)
     if not self.dialogo then
         local j = self.jugador
         for _, d in ipairs(self.disparadores) do
@@ -143,10 +178,14 @@ function EstadoSala:actualizar(dt)
     end
     self.jugador.puedeMoverse = not (self.panel.abierta or self.dialogo)
 
-    self.cerca = nil
+    self.cerca, self.cercaNpc = nil, nil
     for _, f in ipairs(self.fichas) do
         f:Actualizar(dt)
         if f:Cerca(self.jugador) then self.cerca = f end
+    end
+    for _, p in ipairs(self.personajes) do
+        p:Actualizar(dt)
+        if p:Cerca(self.jugador) then self.cercaNpc = p end
     end
 
     -- objetos del puzzle: al pisarlos pasan al inventario
@@ -158,7 +197,7 @@ function EstadoSala:actualizar(dt)
             inventario.agregar(o.item, o.clave)
             local receta = inventario.combinar()
             if receta then self:Avisar(receta.mensaje, 5)
-            else self:Avisar("Encontraste: " .. o.item, 2.5) end
+            else self:Avisar("Encontraste: " .. inventario.nombre(o.item), 2.5) end
         end
     end
 
@@ -179,11 +218,12 @@ function EstadoSala:ChequearPuertas()
     local p = self:PuertaBajoJugador()
     if not p then self.enPuerta = false return end
     if self.enPuerta then return end   -- empezó sobre una puerta: no cuenta hasta que salga de ella
-    
+
     local final = self.sala.final
     if final then
         self.enPuerta = true   -- no se repite hasta que salga de la puerta
         if inventario.tiene(final.requiere) then
+            self.irA = final.luego
             self.panel:Abrir(final.contenido)
         else
             MaqEstadoGlobal:cambiar("sala", { id = SALAS[1].id, aviso = final.falta })
@@ -212,7 +252,6 @@ function EstadoSala:DibujarFondo()
 end
 
 function EstadoSala:dibujar()
-
     love.graphics.setCanvas(lienzo)
     love.graphics.clear(0.1, 0.09, 0.14)
 
@@ -225,10 +264,11 @@ function EstadoSala:dibujar()
         self:DibujarFondo()
     end
 
-        if self.anim then self.anim:Dibujar(self.anchoPx, self.altoPx) end
+    if self.anim then self.anim:Dibujar(self.anchoPx, self.altoPx) end
     love.graphics.setColor(1, 1, 1)
     for _, o in ipairs(self.objetos) do o:Dibujar() end
     for _, f in ipairs(self.fichas) do f:Dibujar(f == self.cerca) end
+    for _, p in ipairs(self.personajes) do p:Dibujar(p == self.cercaNpc) end
     self.jugador:Dibujar()
     self.camara:detach()
 
@@ -239,15 +279,36 @@ function EstadoSala:dibujar()
     love.graphics.setColor(1, 1, 1)
     love.graphics.print(string.format("%d/%d  %s", self.idx, #SALAS, self.sala.titulo), 4, 2)
 
-    -- HUD: objetos que llevo
+    -- HUD: objetos que llevo (y la pista de la tecla T si hay algo para transformar)
+        -- HUD: objetos que llevo (ícono assets/item_<id>.png; si no existe, el nombre)
+    local altoBarra = 12
     if #inventario.items > 0 then
+        altoBarra = 20
         love.graphics.setColor(0, 0, 0, 0.6)
-        love.graphics.rectangle("fill", 0, ventana.alto - 12, ventana.ancho, 12)
-        love.graphics.setColor(1, 0.8, 0.3)
-        love.graphics.print("Objetos: " .. table.concat(inventario.items, "  "), 4, ventana.alto - 10)
+        love.graphics.rectangle("fill", 0, ventana.alto - altoBarra, ventana.ancho, altoBarra)
+        local x = 4
+        for _, id in ipairs(inventario.items) do
+            local img = cargarImagen("assets/item_" .. id .. ".png", "nearest")
+            if img then
+                local esc = math.min(1, 16 / img:getHeight())   -- como máximo 16 px de alto
+                love.graphics.setColor(1, 1, 1)
+                love.graphics.draw(img, x, ventana.alto - altoBarra + (altoBarra - img:getHeight() * esc) / 2, 0, esc, esc)
+                x = x + img:getWidth() * esc + 3
+            else
+                local nombre = inventario.nombre(id)
+                love.graphics.setColor(1, 0.8, 0.3)
+                love.graphics.print(nombre, x, ventana.alto - 14)
+                x = x + fuentes.get(8):getWidth(nombre) + 6
+            end
+        end
+        if inventario.puedeTransformar() then
+            love.graphics.setColor(0.4, 0.9, 1)
+            love.graphics.printf("[T]", 0, ventana.alto - 14, ventana.ancho - 4, "right")
+        end
         love.graphics.setColor(1, 1, 1)
     end
 
+    
     -- HUD: aviso
     if self.tiempoAviso > 0 then
         local y = ventana.alto - 36
@@ -258,7 +319,8 @@ function EstadoSala:dibujar()
         love.graphics.printf(self.aviso, 8, y + 3, ventana.ancho - 16, "center")
     end
 
-            if self.dialogo then
+    -- diálogo
+    if self.dialogo then
         local y = ventana.alto - 44
         love.graphics.setColor(0, 0, 0, 0.9)
         love.graphics.rectangle("fill", 4, y, ventana.ancho - 8, 40)
@@ -280,12 +342,21 @@ function EstadoSala:inputsJuego(key, repetida)
             self.dialogo = nil
         elseif not repetida and (key == "space" or key == "return") then
             self.dialogo.i = self.dialogo.i + 1
-            if self.dialogo.i > #self.dialogo.lineas then self.dialogo = nil end
+            if self.dialogo.i > #self.dialogo.lineas then
+                local fin = self.dialogo.alTerminar
+                self.dialogo = nil
+                if fin then fin() end
+            end
         end
         return
     end
-    if self.panel.abierta then
-        if not repetida then self.panel:Input(key) end
+        if self.panel.abierta then
+        if not repetida then
+            self.panel:Input(key)
+            if not self.panel.abierta and self.irA then
+                MaqEstadoGlobal:cambiar("sala", { id = self.irA, desde = self.sala.id })
+            end
+        end
         return
     end
 
@@ -295,7 +366,24 @@ function EstadoSala:inputsJuego(key, repetida)
     end
 
     if key == "space" then
-        if not repetida and self.cerca then self.panel:Abrir(self.cerca.contenido) end
+        if not repetida then
+            if self.cercaNpc then self:Hablar(self.cercaNpc)
+            elseif self.cerca then self.panel:Abrir(self.cerca.contenido) end
+        end
+        return
+    end
+
+    -- T: transformar (cambio de sentido) los objetos que lo permitan
+    if key == "t" then
+        if not repetida then
+            local hechos = inventario.transformar()
+            if #hechos > 0 then
+                local nombres = {}
+                for _, h in ipairs(hechos) do table.insert(nombres, inventario.nombre(h.a)) end
+                local receta = inventario.combinar()
+                self:Avisar(receta and receta.mensaje or ("Cambio de sentido: " .. table.concat(nombres, ", ")), 5)
+            end
+        end
         return
     end
 
@@ -310,8 +398,4 @@ function EstadoSala:inputsJuego(key, repetida)
         self.jugador:Mover(dx, dy)
         self:ChequearPuertas()
     end
-end
-
-function EstadoSala:AbrirDialogo(texto)
-    self.dialogo = { lineas = (type(texto) == "table") and texto or { texto }, i = 1 }
 end

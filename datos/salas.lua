@@ -9,7 +9,7 @@ local function centro(n) return n * T + T / 2 end
 local function ficha(tx, ty, contenido) return { tipo = "ficha", x = centro(tx), y = centro(ty), contenido = contenido } end
 local function spawn(tx, ty, desde)     return { tipo = "spawn", x = centro(tx), y = centro(ty), desde = desde } end
 local function puerta(tx, ty, destino)  return { tipo = "puerta", x = tx * T, y = ty * T, w = T, h = T, destino = destino } end
-
+local MUSICA_B = "assets/fm1_coral.ogg"
 -- zona invisible: al pisarla se abre un diálogo (texto puede ser un string o una lista de strings)
 local function disparador(tx, ty, tw, th, texto)
     return { tipo = "disparador", x = tx * T, y = ty * T, w = tw * T, h = th * T, texto = texto }
@@ -25,6 +25,11 @@ local function sala(id, titulo, entidades, opciones)
     local s = opciones or {}
     s.id, s.titulo, s.entidades = id, titulo, entidades or {}
     return s
+end
+
+local function npc(tx, ty, cfg)
+    cfg.tipo, cfg.x, cfg.y = "npc", centro(tx), centro(ty)
+    return cfg
 end
 
 local lista = {
@@ -62,13 +67,29 @@ local lista = {
         { mapa = "mapa/musica.lua", siguiente = "despedida" }),
 
     sala("despedida", "Despedida", { ficha(14, 6, "despedida") },
-        { mapa = "mapa/despedida.lua",siguiente = "en el medio", 
-          final = { requiere = "Gem in i", contenido = "final",
-                    falta = "Epa... te faltó algo?" } }),
-    sala("en el medio", "Bran WIEee!!", { disparador(14, 8, 2, 1, "yo soy yo, yo soy vos, somos todos y uno, y aún así debemos continuar") },
-        { mapa = "mapa/medio.lua", siguiente = "...",
-          musica = "assets/fm1_coral.ogg",
+        { mapa = "mapa/despedida.lua",
+          final = { requiere = "Gem in i", contenido = "final", luego = "nivelB1",
+                    falta = "Epa... Te falto algo" } }),
+
+        -- ===== NUEVAs Salas ====
+    
+    sala("nivelB1", "Nivel B1",
+        { disparador(14, 8, 2, 1, "Yo soy yo... yo soy Vos, somos todos y uno, y aún así debemos continuar") },
+        { mapa = "mapa/nivelB1.lua", siguiente = "nivelB2", musica = MUSICA_B,
           animacion = { patron = "assets/anim1/frame%02d.png", frames = 13, fps = 8 } }),
+
+    sala("nivelB2", "Nivel B2",
+        { npc(10, 8, { nombre = "edo", sprite = "assets/edo.png", entrega = "Transform1",
+                       lineas = { "Hola corazón. Fijate si te sirve esto" },
+                       despues = { "Anda probando, no lo desperdicies" } }) },
+        { mapa = "mapa/nivelB2.lua", siguiente = "nivelB3", musica = MUSICA_B }),
+
+    sala("nivelB3", "Nivel B3", {}, { mapa = "mapa/nivelB3.lua", siguiente = "nivelB4", musica = MUSICA_B }),
+    sala("nivelB4", "Nivel B4", {}, { mapa = "mapa/nivelB4.lua", siguiente = "nivelB5", musica = MUSICA_B }),
+    sala("nivelB5", "Nivel B5", {}, { mapa = "mapa/nivelB5.lua", siguiente = "nivelB6", musica = MUSICA_B }),
+    sala("nivelB6", "Nivel B6", {}, { mapa = "mapa/nivelB6.lua", siguiente = "nivelB7", musica = MUSICA_B }),
+    sala("nivelB7", "Nivel B7", {}, { mapa = "mapa/nivelB7.lua", siguiente = "nivelB8", musica = MUSICA_B }),   -- última de la serie
+    sala("nivelB8", "Nivel B8", {}, { mapa = "mapa/nivelB8.lua", musica = MUSICA_B }),
 }
 
 -- Salas cuyo mapa aún no existe: spawn y puerta provisorios

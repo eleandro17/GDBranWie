@@ -83,4 +83,10 @@ return {
             { texto = "GeminI esta en inglés... \n\n ... \n\n Continuará..." },
         },
     },
+        nivelB8 = {
+        titulo = "Que hay por delante?",
+        paginas = {
+            { texto = "Gemini ... Lingera?? \n Que tendrá que ver conmigo??" },
+        },
+    },
 }
